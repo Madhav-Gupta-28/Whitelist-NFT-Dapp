@@ -1,66 +1,92 @@
-
+import React , {useState , useEffect } from 'react'
 import "./App.css"
-import Web3Modal from "web3modal";
-import { providers, Contract } from "ethers";
-import { useEffect, useRef, useState } from "react";
-import abi  from "./Whitelist.json";
+import { address } from './constant/address'
+import abi from "./constant/Whitelist.json"
+import Web3Modal from "web3modal"
+import {ethers} from "ethers"
 
-export default function Home() {
-  const [walletConnected, setWalletConnected] = useState(false);
-  const [joinedWhitelist, setJoinedWhitelist] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [numberOfWhitelisted, setNumberOfWhitelisted] = useState(0);
-  const web3ModalRef = useRef();
+const App = () => {
+  const [numberofWhiteListed , setnumberofWhiteListed] = useState(0);
+  const [account , setaccount] = useState();
+  const [walletconnected , setwalletconnected] = useState(false)
+  const [hasjoinedWhitelist, sethasJoinedWhitelist] = useState(false);
+  const [loading , setloading] = useState(false)
 
-  const getProviderOrSigner = async (needSigner = false) => {
-    const provider = await web3ModalRef.current.connect();
-    const web3Provider = new providers.Web3Provider(provider);
-  
-    const { chainId } = await web3Provider.getNetwork();
-    if (chainId !== 80001 ) {
-      window.alert("Change the network to Mumbai");
-      throw new Error("Change network to Mumbai");
-    }
 
-    if (needSigner) {
-      const signer = web3Provider.getSigner();
-      return signer;
-    }
-    return web3Provider;
-  };
 
-  const addAddressToWhitelist = async () => {
-    try {
-      const signer = await getProviderOrSigner(true);
-      const whitelistContract = new Contract(
-        "0xa04aa2798010c235f4B7FE54C90AaCde8a42776E",
-        abi,
-        signer
+  // renders the button 
+  const renderButton = () => {
+    if (walletconnected) {
+      if (hasjoinedWhitelist) {
+        return (
+          <div className={"description"}>
+            Thanks for joining the Whitelist!
+          </div>
+        );
+      } else if (loading) {
+        return <button className={"button"}>Loading...</button>;
+      } else {
+        return (
+          <button  onClick={joinWhiteList} className={"button"}>
+            Join the Whitelist
+          </button>
+        );
+      }
+    } else {
+      return (
+        <button onClick={connectMetamask} className={"button"}>
+          Connect your wallet
+        </button>
       );
-      const tx = await whitelistContract.addAddressToWhitelist();
-      setLoading(true);
-      await tx.wait();
-      setLoading(false);
-      await getNumberOfWhitelisted();
-      setJoinedWhitelist(true);
-    } catch (err) {
-      console.error(err);
     }
   };
+  // it connect the metamask 
 
- 
+  const connectMetamask = async() =>{
+    // check for mumbai chain
+    const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+    if(chainId !== '0x13881')
+    {
+      alert('Swicth Network to Mumbai')
+      await window.ethereum.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: '0x13881' }],
+     })
+    }else{
+      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+      setaccount(accounts[0]);
+      console.log(account)
+      // window.location.replace(location.pathname)
+      setwalletconnected(true)
+      getNumberOfWhitelisted()
+      checkIfAddressInWhitelist()
+    }
+
+  }
+
+
+  // joinWhiteList function
+
+  const joinWhiteList = async() => {
+    const provider  = new ethers.providers.Web3Provider(window.ethereum);
+
+    const signer = provider.getSigner();
+    const whitelistnft = new ethers.Contract("0xBcF7b0FBDa0E44f33bC97228B1c9840378739b4c",abi.abi,signer)
+
+    const tx = await whitelistnft.addAddressToWhitelist();
+    console.log(tx);
+    alert("Added to Whitelist Succesfully")
+  }
+
   const getNumberOfWhitelisted = async () => {
     try {
-      const provider = await getProviderOrSigner();
+      const provider  = new ethers.providers.Web3Provider(window.ethereum);
 
-      const whitelistContract = new Contract(
-        "0xa04aa2798010c235f4B7FE54C90AaCde8a42776E",
-        abi,
-        provider
-      );
+      const signer = provider.getSigner();
+      const whitelistnft = new ethers.Contract("0xBcF7b0FBDa0E44f33bC97228B1c9840378739b4c",abi.abi,signer)
       const _numberOfWhitelisted =
-        await whitelistContract.numAddressesWhitelisted();
-      setNumberOfWhitelisted(_numberOfWhitelisted);
+        await whitelistnft.numAddressesWhitelisted();
+      setnumberofWhiteListed(_numberOfWhitelisted);
     } catch (err) {
       console.error(err);
     }
@@ -68,99 +94,56 @@ export default function Home() {
 
   const checkIfAddressInWhitelist = async () => {
     try {
-      const signer = await getProviderOrSigner(true);
-      const whitelistContract = new Contract(
-        "0xa04aa2798010c235f4B7FE54C90AaCde8a42776E",
-        abi,
-        signer
-      );
+      const provider  = new ethers.providers.Web3Provider(window.ethereum);
+
+      const signer = provider.getSigner();
+      const whitelistnft = new ethers.Contract("0xBcF7b0FBDa0E44f33bC97228B1c9840378739b4c",abi.abi,signer)
       const address = await signer.getAddress();
-      const _joinedWhitelist = await whitelistContract.whitelistedAddresses(
-        address
-      );
-      setJoinedWhitelist(_joinedWhitelist);
+      // call the whitelistedAddresses from the contract
+      const _joinedWhitelist = await whitelistnft.whitelistedAddresses(
+        address)
+        sethasJoinedWhitelist(_joinedWhitelist)
     } catch (err) {
       console.error(err);
     }
   };
 
-  const connectWallet = async () => {
-    try {
-
-      await getProviderOrSigner();
-      setWalletConnected(true);
-
-      checkIfAddressInWhitelist();
-      getNumberOfWhitelisted();
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  
-  const renderButton = () => {
-    if (walletConnected) {
-      if (joinedWhitelist) {
-        return (
-          <div className="description">
-            Thanks for joining the Whitelist!
-          </div>
-        );
-      } else if (loading) {
-        return <button className="button">Loading...</button>;
-      } else {
-        return (
-          <button onClick={addAddressToWhitelist} className="button">
-            Join the Whitelist
-          </button>
-        );
-      }
-    } else {
-      return (
-        <button onClick={connectWallet} className="button">
-          Connect your wallet
-        </button>
-      );
-    }
-  };
 
   useEffect(() => {
-    if (!walletConnected) {
-      web3ModalRef.current = new Web3Modal({
-        network: "goerli",
-        providerOptions: {},
-        disableInjectedProvider: false,
-      });
-      connectWallet();
-    }
-  }, [walletConnected]);
+  },[walletconnected])
+
+ 
 
   return (
-    <div>
-      <div>
-        <title>Whitelist Dapp</title>
-        <meta name="description" content="Whitelist-Dapp" />
-        <link rel="icon" href="/favicon.ico" />
+    <>
+    <div className='main'>
+
+   
+      <div className='header'>
+        <div className='heading'>
+          <h1>AIFT</h1>
+        </div>
+ 
+          <button onClick={connectMetamask} className='btn'>{walletconnected ? "Connected" : "Connect"}</button>
+
       </div>
-      <div className={"main"}>
+    <div className='content'>
+      <div className='main'>
+        <h1>
+          Welcome to <span>AIFT</span> World
+        </h1>
+        <p>It is an <span>Amazing</span> <span>AI Generated </span>NFT Marketplace</p>
+        <p>For Early 10 User there is gonna to a Free NFT Minted Program </p>
+        <p>So What are you waiting for <span>{numberofWhiteListed}</span> People have already Joined.</p>
         <div>
-          <h1 className={"title"}>Welcome to Crypto Devs!</h1>
-          <div className={"description"}>
-            It&#39;s an NFT collection for developers in Crypto.
-          </div>
-          <div className={"description"}>
-            {numberOfWhitelisted} have already joined the Whitelist
-          </div>
           {renderButton()}
         </div>
-        <div>
-          <img className={"image"} src="./crypto-devs.svg" />
-        </div>
-      </div>
 
-      <footer className={"footer"}>
-        Made with &#10084; by Crypto Devs
-      </footer>
+      </div>
     </div>
-  );
+    </div>
+    </>
+  )
 }
+
+export default App

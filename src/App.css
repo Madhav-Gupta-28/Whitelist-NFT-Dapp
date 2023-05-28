@@ -1,35 +1,40 @@
 *{
-  margin:0;
+  margin: 0;
   padding: 0;
-  box-sizing: border-box;
+  box-sizing: bo
+  ;
 }
-.main {
-  min-height: 90vh;
+
+.header{
   display: flex;
   flex-direction: row;
-  justify-content: center;
-  align-items: center;
-  font-family: "Courier New", Courier, monospace;
+  justify-content: space-between;
+  align-content: center;
 }
 
-.footer {
-  display: flex;
-  padding: 2rem 0;
-  border-top: 1px solid #eaeaea;
-  justify-content: center;
-  align-items: center;
+.heading{
+  color: #ff8700;
+  text-decoration: underline;
+  padding: 0 0 2rem 0 ;
 }
 
-.image {
-  width: 70%;
-  height: 50%;
-  margin-left: 20%;
+.main{
+  margin: 2rem;
 }
 
-.title {
-  font-size: 2rem;
-  margin: 2rem 0;
+
+.btn{
+  background-color: #ff8700;
+  color: #fff;
+  padding:0.4rem 1rem; 
+  border-radius: 1rem;
+  font-size: 1rem;
+  border: 2px solid #fff;
+  cursor: pointer;
 }
+
+
+
 
 .description {
   line-height: 1;
@@ -38,21 +43,44 @@
 }
 
 .button {
-  border-radius: 4px;
-  background-color: blue;
+  border-radius: 1rem;
+  background-color: #ff8700;
   border: none;
   color: #ffffff;
-  font-size: 15px;
-  padding: 20px;
-  width: 200px;
+  font-size: 1rem;
+  padding: 0.8rem;
   cursor: pointer;
-  margin-bottom: 2%;
+  justify-content: center;
+  align-items: center;
 }
-@media (max-width: 1000px) {
-  .main {
-    width: 100%;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-  }
+
+
+.content{
+display: flex;
+justify-content: center;
+align-content: center;
+align-items: center;
+margin: 10vh 0 0 2rem ;
+
+}
+
+.content > div >h1{
+  color: #ff8700;
+  font-size: 2.6rem;
+  font-weight: 1000;
+}
+
+.content > div >h1 > span{
+  text-decoration: underline;
+}
+
+ p {
+  color: #333;
+  font-size: 1.4rem;
+  padding: 0 0 0 2rem;
+  line-height: 2.2rem;
+}
+
+p >span{
+  font-style: italic;
 }

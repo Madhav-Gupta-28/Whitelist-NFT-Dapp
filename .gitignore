@@ -36,3 +36,7 @@ artifacts
 
 
 constant.js
+.vercel
+
+
+.env
