@@ -1,40 +1,30 @@
-*{
-  margin: 0;
-  padding: 0;
-  box-sizing: bo
-  ;
-}
-
-.header{
+.main {
+  min-height: 90vh;
   display: flex;
   flex-direction: row;
-  justify-content: space-between;
-  align-content: center;
+  justify-content: center;
+  align-items: center;
+  font-family: "Courier New", Courier, monospace;
 }
 
-.heading{
-  color: #ff8700;
-  text-decoration: underline;
-  padding: 0 0 2rem 0 ;
+.footer {
+  display: flex;
+  padding: 2rem 0;
+  border-top: 1px solid #eaeaea;
+  justify-content: center;
+  align-items: center;
 }
 
-.main{
-  margin: 2rem;
+.image {
+  width: 70%;
+  height: 50%;
+  margin-left: 20%;
 }
 
-
-.btn{
-  background-color: #ff8700;
-  color: #fff;
-  padding:0.4rem 1rem; 
-  border-radius: 1rem;
-  font-size: 1rem;
-  border: 2px solid #fff;
-  cursor: pointer;
+.title {
+  font-size: 2rem;
+  margin: 2rem 0;
 }
-
-
-
 
 .description {
   line-height: 1;
@@ -43,44 +33,21 @@
 }
 
 .button {
-  border-radius: 1rem;
-  background-color: #ff8700;
+  border-radius: 4px;
+  background-color: blue;
   border: none;
   color: #ffffff;
-  font-size: 1rem;
-  padding: 0.8rem;
+  font-size: 15px;
+  padding: 20px;
+  width: 200px;
   cursor: pointer;
-  justify-content: center;
-  align-items: center;
+  margin-bottom: 2%;
 }
-
-
-.content{
-display: flex;
-justify-content: center;
-align-content: center;
-align-items: center;
-margin: 10vh 0 0 2rem ;
-
-}
-
-.content > div >h1{
-  color: #ff8700;
-  font-size: 2.6rem;
-  font-weight: 1000;
-}
-
-.content > div >h1 > span{
-  text-decoration: underline;
-}
-
- p {
-  color: #333;
-  font-size: 1.4rem;
-  padding: 0 0 0 2rem;
-  line-height: 2.2rem;
-}
-
-p >span{
-  font-style: italic;
+@media (max-width: 1000px) {
+  .main {
+    width: 100%;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
 }

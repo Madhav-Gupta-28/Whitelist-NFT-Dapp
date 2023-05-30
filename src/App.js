@@ -1,23 +1,133 @@
-import React , {useState , useEffect } from 'react'
+
 import "./App.css"
-import { address } from './constant/address'
-import abi from "./constant/Whitelist.json"
-import Web3Modal from "web3modal"
-import {ethers} from "ethers"
-
-const App = () => {
-  const [numberofWhiteListed , setnumberofWhiteListed] = useState(0);
-  const [account , setaccount] = useState();
-  const [walletconnected , setwalletconnected] = useState(false)
-  const [hasjoinedWhitelist, sethasJoinedWhitelist] = useState(false);
-  const [loading , setloading] = useState(false)
+import Web3Modal from "web3modal";
+import { providers, Contract } from "ethers";
+import { useEffect, useRef, useState } from "react";
+import {abi } from "./constant/Whitelist"
 
 
+export default function Home() {
+  // walletConnected keep track of whether the user's wallet is connected or not
+  const [walletConnected, setWalletConnected] = useState(false);
+  // joinedWhitelist keeps track of whether the current metamask address has joined the Whitelist or not
+  const [joinedWhitelist, setJoinedWhitelist] = useState(false);
+  // loading is set to true when we are waiting for a transaction to get mined
+  const [loading, setLoading] = useState(false);
+  // numberOfWhitelisted tracks the number of addresses's whitelisted
+  const [numberOfWhitelisted, setNumberOfWhitelisted] = useState(0);
+  // Create a reference to the Web3 Modal (used for connecting to Metamask) which persists as long as the page is open
+  const web3ModalRef = useRef();
 
-  // renders the button 
+  
+  const getProviderOrSigner = async (needSigner = false) => {
+    // Connect to Metamask
+    // Since we store `web3Modal` as a reference, we need to access the `current` value to get access to the underlying object
+    const provider = await web3ModalRef.current.connect();
+    const web3Provider = new providers.Web3Provider(provider);
+
+    // If user is not connected to the Goerli network, let them know and throw an error
+    const { chainId } = await web3Provider.getNetwork();
+    if (chainId !== 5) {
+      window.alert("Change the network to Goerli");
+      throw new Error("Change network to Goerli");
+    }
+
+    if (needSigner) {
+      const signer = web3Provider.getSigner();
+      return signer;
+    }
+    return web3Provider;
+  };
+
+  const addAddressToWhitelist = async () => {
+    try {
+      // We need a Signer here since this is a 'write' transaction.
+      const signer = await getProviderOrSigner(true);
+      // Create a new instance of the Contract with a Signer, which allows
+      // update methods
+      const whitelistContract = new Contract(
+        "0x4B55C44dBba1B8e11852AFDD50394cE66dD06D13",
+        abi,
+        signer
+      );
+      // call the addAddressToWhitelist from the contract
+      const tx = await whitelistContract.addAddressToWhitelist();
+      setLoading(true);
+      // wait for the transaction to get mined
+      await tx.wait();
+      setLoading(false);
+      // get the updated number of addresses in the whitelist
+      await getNumberOfWhitelisted();
+      setJoinedWhitelist(true);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  /**
+   * getNumberOfWhitelisted:  gets the number of whitelisted addresses
+   */
+  const getNumberOfWhitelisted = async () => {
+    try {
+      const provider = await getProviderOrSigner();
+      const whitelistContract = new Contract(
+        "0x4B55C44dBba1B8e11852AFDD50394cE66dD06D13",
+        abi,
+        provider
+      );
+      // call the numAddressesWhitelisted from the contract
+      const _numberOfWhitelisted =
+        await whitelistContract.numAddressesWhitelisted();
+      setNumberOfWhitelisted(_numberOfWhitelisted);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  /**
+   * checkIfAddressInWhitelist: Checks if the address is in whitelist
+   */
+  const checkIfAddressInWhitelist = async () => {
+    try {
+      const signer = await getProviderOrSigner(true);
+      const whitelistContract = new Contract(
+        "0x4B55C44dBba1B8e11852AFDD50394cE66dD06D13",
+        abi,
+        signer
+      );
+      // Get the address associated to the signer which is connected to  MetaMask
+      const address = await signer.getAddress();
+      // call the whitelistedAddresses from the contract
+      const _joinedWhitelist = await whitelistContract.whitelistedAddresses(
+        "0x4B55C44dBba1B8e11852AFDD50394cE66dD06D13"
+      );
+      setJoinedWhitelist(_joinedWhitelist);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  /*
+    connectWallet: Connects the MetaMask wallet
+  */
+  const connectWallet = async () => {
+    try {
+      await getProviderOrSigner();
+      setWalletConnected(true);
+
+      checkIfAddressInWhitelist();
+      getNumberOfWhitelisted();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  /*
+    renderButton: Returns a button based on the state of the dapp
+  */
   const renderButton = () => {
-    if (walletconnected) {
-      if (hasjoinedWhitelist) {
+    if (walletConnected) {
+      if (joinedWhitelist) {
         return (
           <div className={"description"}>
             Thanks for joining the Whitelist!
@@ -27,123 +137,60 @@ const App = () => {
         return <button className={"button"}>Loading...</button>;
       } else {
         return (
-          <button  onClick={joinWhiteList} className={"button"}>
+          <button onClick={addAddressToWhitelist} className={"button"}>
             Join the Whitelist
           </button>
         );
       }
     } else {
       return (
-        <button onClick={connectMetamask} className={"button"}>
+        <button onClick={connectWallet} className={"button"}>
           Connect your wallet
         </button>
       );
     }
   };
-  // it connect the metamask 
-
-  const connectMetamask = async() =>{
-    // check for mumbai chain
-    const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-    if(chainId !== '0x13881')
-    {
-      alert('Swicth Network to Mumbai')
-      await window.ethereum.request({
-        method: 'wallet_switchEthereumChain',
-        params: [{ chainId: '0x13881' }],
-     })
-    }else{
-      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-      setaccount(accounts[0]);
-      console.log(account)
-      // window.location.replace(location.pathname)
-      setwalletconnected(true)
-      getNumberOfWhitelisted()
-      checkIfAddressInWhitelist()
-    }
-
-  }
-
-
-  // joinWhiteList function
-
-  const joinWhiteList = async() => {
-    const provider  = new ethers.providers.Web3Provider(window.ethereum);
-
-    const signer = provider.getSigner();
-    const whitelistnft = new ethers.Contract("0xBcF7b0FBDa0E44f33bC97228B1c9840378739b4c",abi.abi,signer)
-
-    const tx = await whitelistnft.addAddressToWhitelist();
-    console.log(tx);
-    alert("Added to Whitelist Succesfully")
-  }
-
-  const getNumberOfWhitelisted = async () => {
-    try {
-      const provider  = new ethers.providers.Web3Provider(window.ethereum);
-
-      const signer = provider.getSigner();
-      const whitelistnft = new ethers.Contract("0xBcF7b0FBDa0E44f33bC97228B1c9840378739b4c",abi.abi,signer)
-      const _numberOfWhitelisted =
-        await whitelistnft.numAddressesWhitelisted();
-      setnumberofWhiteListed(_numberOfWhitelisted);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const checkIfAddressInWhitelist = async () => {
-    try {
-      const provider  = new ethers.providers.Web3Provider(window.ethereum);
-
-      const signer = provider.getSigner();
-      const whitelistnft = new ethers.Contract("0xBcF7b0FBDa0E44f33bC97228B1c9840378739b4c",abi.abi,signer)
-      const address = await signer.getAddress();
-      // call the whitelistedAddresses from the contract
-      const _joinedWhitelist = await whitelistnft.whitelistedAddresses(
-        address)
-        sethasJoinedWhitelist(_joinedWhitelist)
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-
+  
   useEffect(() => {
-  },[walletconnected])
-
- 
+    // if wallet is not connected, create a new instance of Web3Modal and connect the MetaMask wallet
+    if (!walletConnected) {
+      
+      web3ModalRef.current = new Web3Modal({
+        network: "goerli",
+        providerOptions: {},
+        disableInjectedProvider: false,
+      });
+      connectWallet();
+    }
+  }, [walletConnected]);
 
   return (
-    <>
-    <div className='main'>
-
-   
-      <div className='header'>
-        <div className='heading'>
-          <h1>AIFT</h1>
-        </div>
- 
-          <button onClick={connectMetamask} className='btn'>{walletconnected ? "Connected" : "Connect"}</button>
-
+    <div>
+      <div>
+        <title>Whitelist Dapp</title>
+        <meta name="description" content="Whitelist-Dapp" />
+        <link rel="icon" href="/favicon.ico" />
       </div>
-    <div className='content'>
-      <div className='main'>
-        <h1>
-          Welcome to <span>AIFT</span> World
-        </h1>
-        <p>It is an <span>Amazing</span> <span>AI Generated </span>NFT Marketplace</p>
-        <p>For Early 10 User there is gonna to a Free NFT Minted Program </p>
-        <p>So What are you waiting for <span>{numberofWhiteListed}</span> People have already Joined.</p>
+      <div className={"main"}>
         <div>
+          <h1 className={"title"}>Welcome to Crypto Devs!</h1>
+          <div className={"description"}>
+            {/* Using HTML Entities for the apostrophe */}
+            It&#39;s an NFT collection for developers in Crypto.
+          </div>
+          <div className={"description"}>
+            {numberOfWhitelisted} have already joined the Whitelist
+          </div>
           {renderButton()}
         </div>
-
+        <div>
+          <img className={"image"} src="./crypto-devs.svg" />
+        </div>
       </div>
-    </div>
-    </div>
-    </>
-  )
-}
 
-export default App
+      <footer className={"footer"}>
+        Made with &#10084; by Crypto Devs
+      </footer>
+    </div>
+  );
+}
